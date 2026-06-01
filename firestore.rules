@@ -1,0 +1,174 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net & Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- REUSABLE SECURITY UTILITY PRIMITIVES ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- ENTITY SCHEMA VALIDATION BLUEPRINTS ---
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['userId', 'email']) 
+        && data.userId == request.auth.uid 
+        && data.email is string 
+        && data.email.size() <= 150
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 150))
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 30))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
+    }
+
+    function isValidRegistration(data) {
+      return data.keys().hasAll(['id', 'userId', 'planId', 'planName', 'fullName', 'email', 'phone']) 
+        && data.userId == request.auth.uid
+        && data.id is string 
+        && data.id.size() <= 64
+        && data.planId is string 
+        && data.planId.size() <= 100
+        && data.planName is string 
+        && data.planName.size() <= 200
+        && data.fullName is string 
+        && data.fullName.size() <= 200
+        && data.email is string 
+        && data.email.size() <= 150
+        && data.phone is string 
+        && data.phone.size() <= 50
+        && (!('startDate' in data) || (data.startDate is string && data.startDate.size() <= 50))
+        && (!('planDuration' in data) || (data.planDuration is string && data.planDuration.size() <= 100))
+        && (!('planPrice' in data) || (data.planPrice is string && data.planPrice.size() <= 50))
+        && (!('paymentMethod' in data) || (data.paymentMethod is string && data.paymentMethod.size() <= 100))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
+    }
+
+    function isValidTrainerBooking(data) {
+      return data.keys().hasAll(['id', 'userId', 'trainerId', 'trainerName', 'clientName', 'clientEmail', 'bookingDate', 'bookingTime'])
+        && data.userId == request.auth.uid
+        && data.id is string 
+        && data.id.size() <= 64
+        && data.trainerId is string 
+        && data.trainerId.size() <= 100
+        && data.trainerName is string 
+        && data.trainerName.size() <= 150
+        && data.clientName is string 
+        && data.clientName.size() <= 200
+        && data.clientEmail is string 
+        && data.clientEmail.size() <= 150
+        && data.bookingDate is string 
+        && data.bookingDate.size() <= 50
+        && data.bookingTime is string 
+        && data.bookingTime.size() <= 50
+        && (!('clientPhone' in data) || (data.clientPhone is string && data.clientPhone.size() <= 50))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
+    }
+
+    function isValidClassBooking(data) {
+      return data.keys().hasAll(['id', 'userId', 'classId', 'className', 'trainerName', 'clientName', 'clientEmail', 'sessionTime'])
+        && data.userId == request.auth.uid
+        && data.id is string
+        && data.id.size() <= 64
+        && data.classId is string
+        && data.classId.size() <= 100
+        && data.className is string
+        && data.className.size() <= 200
+        && data.trainerName is string
+        && data.trainerName.size() <= 150
+        && data.clientName is string
+        && data.clientName.size() <= 200
+        && data.clientEmail is string
+        && data.clientEmail.size() <= 150
+        && data.sessionTime is string
+        && data.sessionTime.size() <= 100
+        && (!('clientPhone' in data) || (data.clientPhone is string && data.clientPhone.size() <= 50))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
+    }
+
+    function isValidEnquiry(data) {
+      return data.keys().hasAll(['id', 'userId', 'name', 'phone', 'email', 'age', 'fitnessGoal'])
+        && data.userId == request.auth.uid
+        && data.id is string
+        && data.id.size() <= 64
+        && data.name is string
+        && data.name.size() <= 200
+        && data.phone is string
+        && data.phone.size() <= 50
+        && data.email is string
+        && data.email.size() <= 150
+        && data.age is int
+        && data.age >= 0 && data.age <= 120
+        && data.fitnessGoal is string
+        && data.fitnessGoal.size() <= 100
+        && (!('message' in data) || (data.message is string && data.message.size() <= 2000))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
+    }
+
+    // --- RULES FOR SPECIFIC MATCH PATHS ---
+
+    // 1. Users Profile Match
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && incoming().userId == existing().userId;
+      // Users can see their own info/delete if deactivated
+      allow delete: if isOwner(userId);
+    }
+
+    // 2. Membership Plan Registrations
+    match /registrations/{registrationId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(registrationId) && isValidRegistration(incoming());
+      allow update: if isSignedIn() && isValidId(registrationId) && existing().userId == request.auth.uid && isValidRegistration(incoming()) && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // 3. 1-on-1 Personal Trainer Bookings
+    match /trainerBookings/{bookingId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(bookingId) && isValidTrainerBooking(incoming());
+      allow update: if isSignedIn() && isValidId(bookingId) && existing().userId == request.auth.uid && isValidTrainerBooking(incoming()) && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // 4. Group Class Bookings
+    match /classBookings/{bookingId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(bookingId) && isValidClassBooking(incoming());
+      allow update: if isSignedIn() && isValidId(bookingId) && existing().userId == request.auth.uid && isValidClassBooking(incoming()) && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // 5. Diagnostics Enquiries
+    match /enquiries/{enquiryId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(enquiryId) && isValidEnquiry(incoming());
+      allow update: if isSignedIn() && isValidId(enquiryId) && existing().userId == request.auth.uid && isValidEnquiry(incoming()) && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}

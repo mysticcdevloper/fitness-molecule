@@ -1,0 +1,6 @@
+{
+  "name": "Fitness Molecule",
+  "description": "Premium gym and fitness club offering state-of-the-art workouts, certified personal trainers, customized diet plans, and holistic wellness programs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

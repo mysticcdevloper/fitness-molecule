@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile containing identifier mapping and details.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The firebase auth UID." },
+        "displayName": { "type": "string", "description": "Display name of the user." },
+        "email": { "type": "string", "description": "User email address." },
+        "phone": { "type": "string", "description": "User contact number." },
+        "createdAt": { "type": "string", "description": "Registration epoch or formatted date." }
+      },
+      "required": ["userId", "email"]
+    },
+    "MembershipRegistration": {
+      "title": "Membership Registration",
+      "description": "Paid club member plan registration detail.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "planId": { "type": "string" },
+        "planName": { "type": "string" },
+        "planDuration": { "type": "string" },
+        "planPrice": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "startDate": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "planId", "planName", "fullName", "email", "phone"]
+    },
+    "PersonalTrainerBooking": {
+      "title": "Personal Trainer Booking",
+      "description": "1-on-1 booked trainer training sessions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "trainerId": { "type": "string" },
+        "trainerName": { "type": "string" },
+        "clientName": { "type": "string" },
+        "clientEmail": { "type": "string" },
+        "clientPhone": { "type": "string" },
+        "bookingDate": { "type": "string" },
+        "bookingTime": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "trainerId", "trainerName", "clientName", "clientEmail", "bookingDate", "bookingTime"]
+    },
+    "ClassBooking": {
+      "title": "Class Booking",
+      "description": "Reserved session access spots on the main roster group classes.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "classId": { "type": "string" },
+        "className": { "type": "string" },
+        "trainerName": { "type": "string" },
+        "clientName": { "type": "string" },
+        "clientEmail": { "type": "string" },
+        "clientPhone": { "type": "string" },
+        "sessionTime": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "classId", "className", "trainerName", "clientName", "clientEmail", "sessionTime"]
+    },
+    "EnquirySubmission": {
+      "title": "Enquiry Submission",
+      "description": "Electronic kinesis advisory diagnostic tickets submitted by visitors.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "age": { "type": "integer" },
+        "fitnessGoal": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "name", "phone", "email", "age", "fitnessGoal"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Users master profile record."
+    },
+    "registrations/{registrationId}": {
+      "schema": "MembershipRegistration",
+      "description": "Active plan membership purchase details mapped to user."
+    },
+    "trainerBookings/{bookingId}": {
+      "schema": "PersonalTrainerBooking",
+      "description": "Trainer 1-on-1 reservations mapped to user."
+    },
+    "classBookings/{bookingId}": {
+      "schema": "ClassBooking",
+      "description": "Group class entry tokens mapped to user."
+    },
+    "enquiries/{enquiryId}": {
+      "schema": "EnquirySubmission",
+      "description": "Form enquiries mapped to user."
+    }
+  }
+}
